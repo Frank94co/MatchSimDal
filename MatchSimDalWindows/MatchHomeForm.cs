@@ -1,5 +1,6 @@
 using MatchSimDalLibrary;
 using MatchSimDalLibrary.Competencia;
+using MatchSimDalWindows.Helpers;
 
 namespace MatchSimDalWindows
 {
@@ -215,6 +216,157 @@ namespace MatchSimDalWindows
             }
         }
 
+        private void btnLiga_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (seleccionarArchivo.ShowDialog() == DialogResult.OK)
+                {
+                    if (seleccionarArchivo.CheckFileExists)
+                    {
+                        using (var sr = new StreamReader(seleccionarArchivo.FileName))
+                        {
+                            string mensaje = "";
+                            string line;
+                            List<Equipo> equipos = new List<Equipo>();
+                            List<string> nombres = new List<string>();
+                            
+                            while ((line = sr.ReadLine()!) != null)
+                            {
+                                
+                                if (line.StartsWith("#"))
+                                {
+                                    mensaje += $"{line.Split("$")[1]} {line.Split("$")[2]}: \n";
+                                    nombres.Add(line.Split("$")[2].Replace("de ", ""));
+                                }
+                                else
+                                {
+                                    Equipo competidor = new Equipo(nombre: line.Split("|")[3],  
+                                                                   categoria: Convert.ToByte(line.Split("|")[0]), 
+                                                                   grupo: Convert.ToByte(line.Split("|")[1]), 
+                                                                   nivel: Convert.ToByte(line.Split("|")[2]));
+                                    mensaje += $"{competidor}, de nivel ";
+                                    switch (competidor.Nivel)
+                                    {
+                                        case 0:
+                                            mensaje += $"alto\n";
+                                            break;
+                                        case 1:
+                                            mensaje += $"medio\n";
+                                            break;
+                                        case 2:
+                                            mensaje += $"bajo\n";
+                                            break;
+                                    }
+                                    equipos.Add(competidor);
+                                }
+                            }
+
+                            var divisiones = (from eq in equipos
+                                              group eq by new { eq.Categoria, eq.Grupo } into gr
+                                              select gr.ToList()).ToList();
+
+                            for (int n = 0; n < divisiones.Count; n++)
+                            {
+                                mensaje += $"{nombres[n]} cargada: \n";
+                                var participantes = divisiones[n];
+                                participantes.Shuffle();
+                                var listaPartidos = ListMatches(participantes).ToList();
+                                var jornadas = listaPartidos.Select(p => p.Day).Distinct().OrderBy(d => d);
+
+                                foreach (var jornada in jornadas)
+                                {
+                                    mensaje += $"Jornada {jornada + 1}\n";
+                                    listaPartidos.ForEach(lp =>
+                                    {
+                                        if (lp.Day == jornada)
+                                        {
+                                            Equipo? local = participantes.Find(e => e.Nombre == lp.First.Nombre && e.Nivel == lp.First.Nivel);
+                                            Equipo? visitante = participantes.Find(e => e.Nombre == lp.Second.Nombre && e.Nivel == lp.Second.Nivel);
+                                            if (local != null && visitante != null)
+                                            {
+                                                byte gLocal = 0, gVisitante = 0;
+                                                string resultado = Liga.Partido(local.Nivel, visitante.Nivel, false);
+                                                gLocal = Convert.ToByte(resultado.Split("-")[0]);
+                                                gVisitante = Convert.ToByte(resultado.Split("-")[1]);
+
+                                                local.GolesMarcados += gLocal;
+                                                visitante.GolesMarcados += gVisitante;
+                                                local.GolesRecibidos += gVisitante;
+                                                visitante.GolesRecibidos += gLocal;
+                                                local.Jugados += 1;
+                                                visitante.Jugados += 1;
+                                                if (gLocal == gVisitante)
+                                                {
+                                                    local.Puntos += 1;
+                                                    visitante.Puntos += 1;
+                                                    local.Empates += 1;
+                                                    visitante.Empates += 1;
+                                                }
+                                                else
+                                                {
+                                                    if (gLocal > gVisitante)
+                                                    {
+                                                        local.Puntos += 3;
+                                                        local.Victorias += 1;
+                                                        visitante.Derrotas += 1;
+                                                    }
+                                                    else
+                                                    {
+                                                        visitante.Puntos += 3;
+                                                        visitante.Victorias += 1;
+                                                        local.Derrotas += 1;
+                                                    }
+                                                }
+
+                                                mensaje += $"\t {local} {resultado} {visitante} \n";
+                                            }
+                                        }
+                                    });
+
+                                    var listaOrdenada = (from eq in participantes
+                                                         orderby eq.Puntos descending, eq.GolesMarcados - eq.GolesRecibidos descending, eq.GolesMarcados descending
+                                                         select eq).ToList();
+
+                                    var listaStrings = (from eq in participantes
+                                                        select eq.Nombre).ToList();
+
+                                    var stringLargo = listaStrings.Aggregate("", (max, cur) => max.Length > cur.Length ? max : cur).Length;
+
+
+                                    mensaje += "".PadRight(stringLargo+47, '=')+"\n";
+                                    mensaje += "Equipo".PadRight(stringLargo + 4) + "| PJ | PG | PE | PP | GF  | GC  | DG  | Pt\n";
+
+                                    for (int i = 0; i < listaOrdenada.Count; i++)
+                                    {
+                                        string pos = (i + 1).ToString().PadLeft(2) + ".";
+                                        string jug = listaOrdenada[i].Jugados.ToString().PadLeft(2);
+                                        string vic = listaOrdenada[i].Victorias.ToString().PadLeft(2);
+                                        string emp = listaOrdenada[i].Empates.ToString().PadLeft(2);
+                                        string der = listaOrdenada[i].Derrotas.ToString().PadLeft(2);
+                                        string gf = listaOrdenada[i].GolesMarcados.ToString().PadLeft(3);
+                                        string gc = listaOrdenada[i].GolesRecibidos.ToString().PadLeft(3);
+                                        string pt = listaOrdenada[i].Puntos.ToString().PadLeft(3);
+                                        int diferencia = listaOrdenada[i].GolesMarcados - listaOrdenada[i].GolesRecibidos;
+                                        string dg = diferencia.ToString().PadLeft(3);
+                                        mensaje += $"{pos} {listaOrdenada[i].Nombre.PadRight(stringLargo)}| {jug} | {vic} | {emp} | {der} | {gf} | {gc} | {dg} | {pt}\n";
+                                    }
+                                    mensaje += "\n";
+                                }
+                            }
+                            
+                            File.WriteAllText("informe_completo_ligas.txt", mensaje);
+                            MessageBox.Show("Se ha emitido un informe completo de los partidos ingresados", "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                    }
+                }
+            }
+            catch (Exception exc)
+            {
+                MessageBox.Show(exc.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private void btnReportBug_Click(object sender, EventArgs e)
         {
             MessageBox.Show("Si encontraste algún bug, por favor avisa a @Frank9412_co en twitter. Envía pantallazo con lo que pasó y se intentará arreglar lo antes posible.", "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -321,6 +473,59 @@ namespace MatchSimDalWindows
                     MessageBox.Show("Se emitió un informe parcial de la copa al haberse detenido", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
+        }
+
+        public static IEnumerable<(int Day, T First, T Second)> ListMatches<T>(IList<T> teams)
+        {
+            var matches = new List<(int, T, T)>();
+            if (teams == null || teams.Count < 2)
+            {
+                return matches;
+            }
+
+            var restTeams = new List<T>(teams.Skip(1));
+            var teamsCount = teams.Count;
+            if (teams.Count % 2 != 0)
+            {
+                restTeams.Add(default);
+                teamsCount++;
+            }
+
+            for (var day = 0; day < teamsCount - 1; day++)
+            {
+                if (restTeams[day % restTeams.Count]?.Equals(default) == false)
+                {
+                    matches.Add((day, teams[0], restTeams[day % restTeams.Count]));
+                }
+
+                for (var index = 1; index < teamsCount / 2; index++)
+                {
+                    var firstTeam = restTeams[(day + index) % restTeams.Count];
+                    var secondTeam = restTeams[(day + restTeams.Count - index) % restTeams.Count];
+                    if (firstTeam?.Equals(default) == false && secondTeam?.Equals(default) == false)
+                    {
+                        matches.Add((day, firstTeam, secondTeam));
+                    }
+                }
+            }
+
+
+            for (int i = 0; i < teamsCount - 1; i++)
+            {
+                var partidosJornada = matches.FindAll(m => m.Item1 == i);
+                for (int j = 0; j < partidosJornada.Count(); j++)
+                {
+                    var partido = partidosJornada[j];
+
+                    int jornada = partido.Item1 + (teamsCount - 1);
+                    T firstTeam = partido.Item3;
+                    T secondTeam = partido.Item2;
+
+                    matches.Add((jornada, firstTeam, secondTeam));
+                }
+            }
+
+            return matches;
         }
     }
 }

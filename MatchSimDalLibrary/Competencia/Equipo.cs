@@ -4,6 +4,7 @@
     {
         public string Nombre { get; set; }
         public short Nivel { get; set; }
+        public short Grupo { get; set; }
         public byte Categoria { get; set; }
         public byte GolesMarcados { get; set; }
         public byte GolesRecibidos { get; set; }
@@ -38,6 +39,14 @@
         {
             Nombre = nombre;
             Categoria = categoria;
+            Nivel = nivel;
+        }
+
+        public Equipo(string nombre, byte categoria, byte grupo, short nivel)
+        {
+            Nombre = nombre;
+            Categoria = categoria;
+            Grupo = grupo;
             Nivel = nivel;
         }
 

@@ -36,6 +36,7 @@
             this.seleccionarArchivo = new System.Windows.Forms.OpenFileDialog();
             this.btnCopaCompleta = new System.Windows.Forms.Button();
             this.seleccionarArchivoCopa = new System.Windows.Forms.OpenFileDialog();
+            this.btnLiga = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // btnCampoNeutral
@@ -70,9 +71,9 @@
             // 
             // btnMultijornada
             // 
-            this.btnMultijornada.Location = new System.Drawing.Point(148, 128);
+            this.btnMultijornada.Location = new System.Drawing.Point(12, 124);
             this.btnMultijornada.Name = "btnMultijornada";
-            this.btnMultijornada.Size = new System.Drawing.Size(141, 40);
+            this.btnMultijornada.Size = new System.Drawing.Size(190, 34);
             this.btnMultijornada.TabIndex = 4;
             this.btnMultijornada.Text = "Multijornada";
             this.btnMultijornada.UseVisualStyleBackColor = true;
@@ -109,11 +110,22 @@
             this.seleccionarArchivoCopa.Filter = "Archivos delimitados (*.csv, *.txt)|*.csv;*.txt;";
             this.seleccionarArchivoCopa.InitialDirectory = "C:/Desktop";
             // 
+            // btnLiga
+            // 
+            this.btnLiga.Location = new System.Drawing.Point(242, 124);
+            this.btnLiga.Name = "btnLiga";
+            this.btnLiga.Size = new System.Drawing.Size(190, 34);
+            this.btnLiga.TabIndex = 7;
+            this.btnLiga.Text = "Liga completa";
+            this.btnLiga.UseVisualStyleBackColor = true;
+            this.btnLiga.Click += new System.EventHandler(this.btnLiga_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(444, 232);
+            this.Controls.Add(this.btnLiga);
             this.Controls.Add(this.btnCopaCompleta);
             this.Controls.Add(this.btnReportBug);
             this.Controls.Add(this.btnMultijornada);
@@ -136,5 +148,6 @@
         private OpenFileDialog seleccionarArchivo;
         private Button btnCopaCompleta;
         private OpenFileDialog seleccionarArchivoCopa;
+        private Button btnLiga;
     }
 }
